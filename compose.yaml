@@ -5,7 +5,10 @@ services:
     container_name: robot-ros
     network_mode: host   # lets ROS 2 nodes discover each other across Mac <-> Pi
     ipc: host
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
     volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - .:/robot         # live-mount the code, edit on host, build in container
       - /robot/build     # keep container build/ separate from the host one
     stdin_open: true
