@@ -1,12 +1,21 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
 Visualization Manager:
   Class: ""
   Displays:
     - Class: rviz_default_plugins/Grid
       Name: Grid
+      Enabled: true
+      Value: true
     - Class: rviz_default_plugins/RobotModel
       Name: RobotModel
+      Enabled: true
+      Value: true
       Description Source: Topic
-      Description Topic: /robot_description
+      Description Topic:
+        Value: /robot_description
+  Enabled: true
   Global Options:
     Fixed Frame: base_link
   Name: root
@@ -14,7 +23,17 @@ Visualization Manager:
     - Class: rviz_default_plugins/Interact
     - Class: rviz_default_plugins/MoveCamera
     - Class: rviz_default_plugins/Select
+  Value: true
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
       Distance: 2
+      Name: Current View
+    Saved: ~
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 700
+  Width: 1000
+  X: 0
+  Y: 0

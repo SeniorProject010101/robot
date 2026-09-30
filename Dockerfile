@@ -16,10 +16,15 @@ RUN apt-get update \
     ros-jazzy-rviz2 \
     ros-jazzy-robot-state-publisher \
     ros-jazzy-xacro \
+    xvfb x11vnc fluxbox novnc python3-websockify \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /robot
 
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
+
+# Virtual desktop for Gazebo/RViz when the host has no X display
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 CMD ["bash"]

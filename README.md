@@ -22,9 +22,14 @@ Edit the code normally; the container sees the mounted project files.
 ## Simulation
 
 The project includes a small Gazebo and RViz simulation. You need Docker Desktop
-or Docker Engine. Linux hosts also need `xhost`; macOS hosts need XQuartz.
+or Docker Engine.
 
-On Linux, allow the container to open a display:
+**macOS:** the container has a built-in virtual desktop. Enable host networking
+once in Docker Desktop (Settings → Resources → Network → *Enable host
+networking*, then Apply & restart). After launching the sim, open
+<http://localhost:6080/vnc.html?autoconnect=1&resize=remote> to see Gazebo and RViz.
+
+**Linux:** allow the container to open windows on your display:
 
 ```
 xhost +local:docker

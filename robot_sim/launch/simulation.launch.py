@@ -29,7 +29,8 @@ def generate_launch_description():
     bridge = Node(
         package='ros_gz_bridge', executable='parameter_bridge',
         arguments=['/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist',
-                   '/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry'],
+                   '/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+                   '/joint_states@sensor_msgs/msg/JointState[gz.msgs.Model'],
     )
     rviz = Node(
         package='rviz2', executable='rviz2',
