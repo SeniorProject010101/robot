@@ -63,7 +63,46 @@ docker compose down
 The robot model lives in `robot_sim/description`. The world and launch files
 are in `robot_sim/worlds` and `robot_sim/launch`.
 
+### Changing the sim without rebuilding
+
+The sim package is installed with `--symlink-install`, so the installed files
+point straight at `robot_sim/`. Build it once:
+
+```bash
+colcon build --symlink-install --base-paths robot_sim
+source /robot/install/setup.bash   # only needed in the shell you built in
+```
+
+New shells in the container load `install/setup.bash` automatically. After that, edits to existing files in `description/`, `worlds/`, `launch/`
+and `rviz/` need no rebuild. Gazebo and RViz only read them at startup, so
+restart the sim to see a change:
+
+```bash
+# Ctrl+C the running sim, then:
+ros2 launch robot_sim simulation.launch.py
+```
+
+Then reload <http://localhost:6080/vnc.html?autoconnect=1&resize=remote>.
+
+Rebuild (the `colcon build` above) only when you add a new file to the
+package. C++ code (`main.cpp`, `core/`) always needs `./docker.sh build`.
+
+Example: to change the robot's colour, edit the `rgba` value (red, green,
+blue, opacity, each 0 to 1) of the body material at the top of
+`robot_sim/description/robot.urdf.xacro`, then restart the sim.
+
+Check the robot model for mistakes before launching:
+
+```bash
+xacro /robot/robot_sim/description/robot.urdf.xacro > /tmp/robot.urdf && check_urdf /tmp/robot.urdf
+```
+
 **If something's weird**
 
 - Mac and Pi can't see each other? In Docker Desktop, go to Settings -> Resources -> Network and turn on host networking.
-- Want a fresh start? `docker compose down` and run `./docker.sh` again.
+- Want a fresh start? `docker compose down` and run `./docker.sh` again. This clears the container's `build/`, so run the `colcon build` above again.
+- `Package 'robot_sim' not found`? Run the `colcon build` above, then `source /robot/install/setup.bash`.
+- `ros: command not found` / `python: command not found`? The commands are `ros2` and `python3`.
+- Running a launch file with `python3` does nothing. Use `ros2 launch robot_sim <file>.launch.py`.
+- Sim shows an old version of the robot? Another container may be holding port 6080. Run `docker ps`, then stop the old one with `docker stop <name>`.
+- Gazebo and RViz open but no robot appears? The model file has an error. Run the `check_urdf` command above.

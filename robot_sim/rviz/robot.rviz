@@ -15,6 +15,12 @@ Visualization Manager:
       Description Source: Topic
       Description Topic:
         Value: /robot_description
+    - Class: rviz_default_plugins/Marker
+      Name: Hello Marker
+      Enabled: true
+      Marker Topic: /hello_marker
+      Namespaces: {}
+      Queue Size: 10
   Enabled: true
   Global Options:
     Fixed Frame: base_link

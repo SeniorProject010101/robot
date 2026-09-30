@@ -21,6 +21,9 @@ def generate_launch_description():
         package='robot_state_publisher', executable='robot_state_publisher',
         parameters=[{'robot_description': Command(['xacro ', description])}],
     )
+    marker = Node(
+        package='robot_sim', executable='hello_marker_node', output='screen',
+    )
     spawn = Node(
         package='ros_gz_sim', executable='create',
         arguments=['-topic', 'robot_description', '-name', 'robot', '-z', '0.2'],
@@ -36,4 +39,4 @@ def generate_launch_description():
         package='rviz2', executable='rviz2',
         arguments=['-d', PathJoinSubstitution([share, 'rviz', 'robot.rviz'])],
     )
-    return LaunchDescription([gazebo, state, spawn, bridge, rviz])
+    return LaunchDescription([gazebo, state, spawn, bridge, marker, rviz])

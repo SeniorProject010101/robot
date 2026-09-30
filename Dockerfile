@@ -21,7 +21,8 @@ RUN apt-get update \
 
 WORKDIR /robot
 
-RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
+RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc \
+ && echo "[ -f /robot/install/setup.bash ] && source /robot/install/setup.bash" >> /root/.bashrc
 
 # Virtual desktop for Gazebo/RViz when the host has no X display
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
