@@ -31,10 +31,6 @@ networking*, then Apply & restart). After launching the sim, open
 
 **Linux:** allow the container to open windows on your display:
 
-```
-xhost +local:docker
-```
-
 Build the project and simulation package:
 
 ```bash
