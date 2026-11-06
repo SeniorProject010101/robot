@@ -11,7 +11,7 @@
 using geometry_msgs::msg::Twist;
 using Clock = std::chrono::steady_clock;
 
-const double MAX_SPEED   = 0.5;   // must match driver.cpp
+const double MAX_SPEED   = 1.0;   // must match driver.cpp
 const double WHEELBASE   = 0.14;  // must match driver.cpp
 const double TURN_DEG    = 30.0;
 const double FIRST_HOLD  = 0.7;   // wait for keyboard auto-repeat to kick in
