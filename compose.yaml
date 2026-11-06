@@ -3,5 +3,10 @@ services:
     build: .
     image: robot-ros:jazzy
     container_name: robot-ros
+    network_mode: host
+    devices:
+      - /dev/gpiochip0:/dev/gpiochip0
     volumes:
       - .:/robot
+    stdin_open: true
+    tty: true
