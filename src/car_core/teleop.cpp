@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
 
   printf("HOLD W/S drive | TAP A/D steer | C center | 1-9,0 speed | SPACE stop | Q quit\n");
 
-  double speed = 0.6, steer = 0;          // steer: degrees, + = left
+  double speed = 0.75, steer = 0;          // steer: degrees, + = left
   char held = 0;
   auto last = Clock::now();
   bool repeating = false;
