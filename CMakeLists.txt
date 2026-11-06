@@ -12,7 +12,13 @@ ament_target_dependencies(
   "geometry_msgs"
 )
 
-install(TARGETS driver
-  DESTINATION lib/${PROJECT_NAME})
+add_executable(teleop src/car_core/teleop.cpp)
+ament_target_dependencies(
+  teleop
+  "rclcpp"
+  "geometry_msgs"
+)
+
+install(TARGETS driver teleop DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
