@@ -3,6 +3,8 @@
 #include <lgpio.h>
 #include <algorithm>
 #include <cmath>
+#include <fstream>
+#include <thread>
 
 using geometry_msgs::msg::Twist;
 using namespace std::chrono_literals;
@@ -13,21 +15,35 @@ const double WHEELBASE = 0.14;
 const double MAX_SPEED = 0.5;  // same in teleop.cpp
 const double REF_V = 0.1;      // same in teleop.cpp
 
-const int IN1 = 23, IN2 = 24, ENA = 25, STEER = 12;
+const int IN1 = 23, IN2 = 24, ENA = 25;   // motor; steering is GPIO12 via hardware PWM
+
+void pwm(const char* file, long v) {     // write to the hardware PWM chip
+  std::ofstream(std::string("/sys/class/pwm/pwmchip0/") + file) << v;
+}
 
 class Driver : public rclcpp::Node {
 public:
   Driver() : Node("driver") {
     h_ = lgGpiochipOpen(0);
-    for (int pin : {IN1, IN2, ENA, STEER}) lgGpioClaimOutput(h_, 0, pin, 0);
+    for (int pin : {IN1, IN2, ENA}) lgGpioClaimOutput(h_, 0, pin, 0);
+
+    pwm("export", 0);                     // harmless if already exported
+    std::this_thread::sleep_for(300ms);
+    pwm("pwm0/period", 20000000);         // 50 Hz
     setSteer(CENTER);
+    pwm("pwm0/enable", 1);
+
     sub_ = create_subscription<Twist>("cmd_vel", 10,
       [this](Twist::SharedPtr m) { onCmd(*m); });
     timer_ = create_wall_timer(100ms, [this] { watchdog(); });
     RCLCPP_INFO(get_logger(), "driver ready");
   }
 
-  ~Driver() override { setDrive(0); lgGpiochipClose(h_); }
+  ~Driver() override {
+    setDrive(0);
+    pwm("pwm0/enable", 0);
+    lgGpiochipClose(h_);
+  }
 
 private:
   void setDrive(double s) {               // -1 .. 1
@@ -38,10 +54,10 @@ private:
     lgTxPwm(h_, ENA, 100, std::abs(s) * 100, 0, 0);
   }
 
-  void setSteer(double deg) {             // servo angle
+  void setSteer(double deg) {             // servo angle -> pulse in nanoseconds
     if (deg == steer_) return;
     steer_ = deg;
-    lgTxServo(h_, STEER, int(544 + deg / 180 * 1856), 50, 0, 0);
+    pwm("pwm0/duty_cycle", long(544 + deg / 180 * 1856) * 1000);
   }
 
   void onCmd(const Twist& m) {
