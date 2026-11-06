@@ -11,6 +11,7 @@ ament_target_dependencies(
   "rclcpp"
   "geometry_msgs"
 )
+target_link_libraries(driver lgpio)
 
 add_executable(teleop src/car_core/teleop.cpp)
 ament_target_dependencies(
