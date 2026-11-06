@@ -46,8 +46,8 @@ int main(int argc, char** argv) {
 
     if (k == 'q') break;
     if (k == 'w' || k == 's') { repeating = (k == held); held = k; last = t; }
-    if (k == 'a') steer = std::min(35.0, steer + 10);
-    if (k == 'd') steer = std::max(-35.0, steer - 10);
+    if (k == 'a') steer = std::min(60.0, steer + 10);
+    if (k == 'd') steer = std::max(-60.0, steer - 10);
     if (k == 'c') steer = 0;
     if (k == ' ') held = 0;
     if (k >= '1' && k <= '9') speed = (k - '0') / 10.0;

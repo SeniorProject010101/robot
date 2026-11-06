@@ -9,13 +9,13 @@
 using geometry_msgs::msg::Twist;
 using namespace std::chrono_literals;
 
-const double CENTER = 60.0;   // straight
+const double CENTER = 60.0;  
 const double MAX_TURN = 35.0;
 const double WHEELBASE = 0.14;
 const double MAX_SPEED = 0.5;  // same in teleop.cpp
 const double REF_V = 0.1;      // same in teleop.cpp
 
-const int IN1 = 23, IN2 = 24, ENA = 25;   // motor; steering is GPIO12 via hardware PWM
+const int IN1 = 23, IN2 = 24, ENA = 25; 
 
 void pwm(const char* file, long v) {     // write to the hardware PWM chip
   std::ofstream(std::string("/sys/class/pwm/pwmchip0/") + file) << v;
