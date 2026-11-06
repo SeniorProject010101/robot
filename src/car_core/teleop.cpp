@@ -5,97 +5,71 @@
 #include <sys/select.h>
 #include <algorithm>
 #include <chrono>
-#include <cctype>
 #include <cmath>
 #include <cstdio>
 
 using geometry_msgs::msg::Twist;
 using Clock = std::chrono::steady_clock;
 
-// ---- keep in sync with driver.cpp ----
-const double MAX_SPEED   = 0.8;
-const double WHEELBASE   = 0.14;
-const double REF_V       = 0.1;
+const double MAX_SPEED = 0.5;  // same in driver.cpp
+const double WHEELBASE = 0.14;
+const double REF_V = 0.1;
 
-const double MAX_TURN    = 30.0;  // degrees
-const double STEP        = 10.0;  // degrees per A/D tap
-const double FIRST_HOLD  = 0.7;   // wait for keyboard auto-repeat to start
-const double REPEAT_HOLD = 0.15;  // gap between repeats while held
-
-struct RawTerminal {                 // single keys, no Enter, no echo
-  termios old{};
-  RawTerminal() {
-    tcgetattr(STDIN_FILENO, &old);
-    termios raw = old;
-    raw.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &raw);
-  }
-  ~RawTerminal() { tcsetattr(STDIN_FILENO, TCSANOW, &old); }
-};
-
-int readKey(int timeout_ms) {
-  fd_set fds; FD_ZERO(&fds); FD_SET(STDIN_FILENO, &fds);
-  timeval tv{0, timeout_ms * 1000};
-  if (select(STDIN_FILENO + 1, &fds, nullptr, nullptr, &tv) > 0) {
-    char c;
-    if (read(STDIN_FILENO, &c, 1) == 1) return std::tolower(c);
-  }
+int readKey() {                           // waits up to 50 ms
+  fd_set f; FD_ZERO(&f); FD_SET(0, &f);
+  timeval tv{0, 50000};
+  char c;
+  if (select(1, &f, 0, 0, &tv) > 0 && read(0, &c, 1) == 1) return tolower(c);
   return -1;
 }
 
 int main(int argc, char** argv) {
   rclcpp::init(argc, argv);
   auto node = rclcpp::Node::make_shared("teleop");
-  auto pub  = node->create_publisher<Twist>("cmd_vel", 10);
+  auto pub = node->create_publisher<Twist>("cmd_vel", 10);
 
-  std::printf("\nHOLD W forward / S back    TAP A/D steer (stays)    R center\n"
-              "1-9 = 10-90%% speed   0 = 100%%   SPACE stop   X quit\n\n");
+  termios old, raw;                       // read keys without Enter
+  tcgetattr(0, &old); raw = old;
+  raw.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(0, TCSANOW, &raw);
 
-  RawTerminal term;
-  double speed = 0.6;
-  double steer = 0;        // degrees, + = left
+  printf("HOLD W/S drive | TAP A/D steer | C center | 1-9,0 speed | SPACE stop | Q quit\n");
+
+  double speed = 1.0, steer = 0;          // steer: degrees, + = left
   char held = 0;
-  int repeats = 0;
-  auto last_key = Clock::now();
+  auto last = Clock::now();
+  bool repeating = false;
 
   while (rclcpp::ok()) {
-    int k = readKey(50);   // ~20 loops per second
+    int k = readKey();
     auto t = Clock::now();
 
-    if (k == 'x') break;
+    if (k == 'q') break;
+    if (k == 'w' || k == 's') { repeating = (k == held); held = k; last = t; }
+    if (k == 'a') steer = std::min(35.0, steer + 10);
+    if (k == 'd') steer = std::max(-35.0, steer - 10);
+    if (k == 'c') steer = 0;
+    if (k == ' ') held = 0;
     if (k >= '1' && k <= '9') speed = (k - '0') / 10.0;
-    else if (k == '0') speed = 1.0;
-    else if (k == ' ') held = 0;
-    else if (k == 'a') steer = std::min(MAX_TURN,  steer + STEP);
-    else if (k == 'd') steer = std::max(-MAX_TURN, steer - STEP);
-    else if (k == 'r') steer = 0;
-    else if (k == 'w' || k == 's') {
-      repeats = (k == held) ? repeats + 1 : 0;
-      held = k;
-      last_key = t;
-    }
+    if (k == '0') speed = 1.0;
 
-    // W/S released? (no repeats arriving)
-    double idle = std::chrono::duration<double>(t - last_key).count();
-    if (held && idle > (repeats ? REPEAT_HOLD : FIRST_HOLD)) held = 0;
+    // released? keys repeat ~25x/s while held; first repeat takes ~0.5 s
+    double idle = std::chrono::duration<double>(t - last).count();
+    if (idle > (repeating ? 0.15 : 0.7)) held = 0;
 
-    double v = (held == 'w') ? 1.0 : (held == 's') ? -1.0 : 0.0;
-    v *= speed * MAX_SPEED;
+    double v = (held == 'w' ? 1 : held == 's' ? -1 : 0) * speed * MAX_SPEED;
+    double vs = std::abs(v) > 0.01 ? v : REF_V;
 
-    // inverse of the driver's math; REF_V when stopped so steering still works
-    double v_for_steer = (std::abs(v) > 0.01) ? v : REF_V;
-    Twist msg;
-    msg.linear.x  = v;
-    msg.angular.z = v_for_steer * std::tan(steer * M_PI / 180.0) / WHEELBASE;
-    pub->publish(msg);
+    Twist m;
+    m.linear.x = v;
+    m.angular.z = vs * std::tan(steer * M_PI / 180) / WHEELBASE;
+    pub->publish(m);
 
-    std::printf("\r drive=%c  steer=%+3.0f  speed=%3d%%   ",
-                held ? held : '-', steer, int(speed * 100));
-    std::fflush(stdout);
+    printf("\r drive=%c steer=%+3.0f speed=%3.0f%%  ", held ? held : '-', steer, speed * 100);
+    fflush(stdout);
   }
 
-  try { pub->publish(Twist()); } catch (...) {}   // final stop + center
+  pub->publish(Twist());                  // stop
+  tcsetattr(0, TCSANOW, &old);
   rclcpp::shutdown();
-  std::printf("\nstopped\n");
-  return 0;
 }
