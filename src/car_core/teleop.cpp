@@ -3,6 +3,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <sys/select.h>
+#include <algorithm>
 #include <chrono>
 #include <cctype>
 #include <cmath>
@@ -11,10 +12,14 @@
 using geometry_msgs::msg::Twist;
 using Clock = std::chrono::steady_clock;
 
-const double MAX_SPEED   = 1.0;   // must match driver.cpp
-const double WHEELBASE   = 0.14;  // must match driver.cpp
-const double TURN_DEG    = 30.0;
-const double FIRST_HOLD  = 0.7;   // wait for keyboard auto-repeat to kick in
+// ---- keep in sync with driver.cpp ----
+const double MAX_SPEED   = 0.5;
+const double WHEELBASE   = 0.14;
+const double REF_V       = 0.1;
+
+const double MAX_TURN    = 30.0;  // degrees
+const double STEP        = 10.0;  // degrees per A/D tap
+const double FIRST_HOLD  = 0.7;   // wait for keyboard auto-repeat to start
 const double REPEAT_HOLD = 0.15;  // gap between repeats while held
 
 struct RawTerminal {                 // single keys, no Enter, no echo
@@ -43,54 +48,53 @@ int main(int argc, char** argv) {
   auto node = rclcpp::Node::make_shared("teleop");
   auto pub  = node->create_publisher<Twist>("cmd_vel", 10);
 
-  std::printf("\nHOLD  W forward   S back   A fwd-left   D fwd-right   Z back-left   C back-right\n"
+  std::printf("\nHOLD W forward / S back    TAP A/D steer (stays)    R center\n"
               "1-9 = 10-90%% speed   0 = 100%%   SPACE stop   X quit\n\n");
 
   RawTerminal term;
   double speed = 0.6;
+  double steer = 0;        // degrees, + = left
   char held = 0;
   int repeats = 0;
   auto last_key = Clock::now();
 
   while (rclcpp::ok()) {
-    int k = readKey(50);                      // ~20 loops per second
+    int k = readKey(50);   // ~20 loops per second
     auto t = Clock::now();
 
     if (k == 'x') break;
     if (k >= '1' && k <= '9') speed = (k - '0') / 10.0;
     else if (k == '0') speed = 1.0;
     else if (k == ' ') held = 0;
-    else if (k != -1 && std::string("wsadzc").find(k) != std::string::npos) {
+    else if (k == 'a') steer = std::min(MAX_TURN,  steer + STEP);
+    else if (k == 'd') steer = std::max(-MAX_TURN, steer - STEP);
+    else if (k == 'r') steer = 0;
+    else if (k == 'w' || k == 's') {
       repeats = (k == held) ? repeats + 1 : 0;
       held = k;
       last_key = t;
     }
 
-    // key released? (no repeats arriving)
+    // W/S released? (no repeats arriving)
     double idle = std::chrono::duration<double>(t - last_key).count();
     if (held && idle > (repeats ? REPEAT_HOLD : FIRST_HOLD)) held = 0;
 
-    double v = 0, steer = 0;                  // steer in degrees, + = left
-    switch (held) {
-      case 'w': v =  1; break;
-      case 's': v = -1; break;
-      case 'a': v =  1; steer =  TURN_DEG; break;
-      case 'd': v =  1; steer = -TURN_DEG; break;
-      case 'z': v = -1; steer =  TURN_DEG; break;
-      case 'c': v = -1; steer = -TURN_DEG; break;
-    }
+    double v = (held == 'w') ? 1.0 : (held == 's') ? -1.0 : 0.0;
     v *= speed * MAX_SPEED;
 
+    // inverse of the driver's math; REF_V when stopped so steering still works
+    double v_for_steer = (std::abs(v) > 0.01) ? v : REF_V;
     Twist msg;
     msg.linear.x  = v;
-    msg.angular.z = v * std::tan(steer * M_PI / 180.0) / WHEELBASE;  // inverse of driver's math
+    msg.angular.z = v_for_steer * std::tan(steer * M_PI / 180.0) / WHEELBASE;
     pub->publish(msg);
 
-    std::printf("\r key=%c  speed=%3d%%   ", held ? held : '-', int(speed * 100));
+    std::printf("\r drive=%c  steer=%+3.0f  speed=%3d%%   ",
+                held ? held : '-', steer, int(speed * 100));
     std::fflush(stdout);
   }
 
-  try { pub->publish(Twist()); } catch (...) {}   // final stop
+  try { pub->publish(Twist()); } catch (...) {}   // final stop + center
   rclcpp::shutdown();
   std::printf("\nstopped\n");
   return 0;
