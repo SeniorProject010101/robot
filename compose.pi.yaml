@@ -1,0 +1,4 @@
+services:
+  ros:
+    devices:
+      - /dev/gpiochip0:/dev/gpiochip0
