@@ -13,7 +13,7 @@ using geometry_msgs::msg::Twist;
 using Clock = std::chrono::steady_clock;
 
 // ---- keep in sync with driver.cpp ----
-const double MAX_SPEED   = 0.5;
+const double MAX_SPEED   = 0.8;
 const double WHEELBASE   = 0.14;
 const double REF_V       = 0.1;
 

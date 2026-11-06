@@ -15,7 +15,7 @@ using namespace std::chrono_literals;
 const double CENTER    = 60.0;   // servo angle for straight
 const double MAX_TURN  = 35.0;   // degrees each way
 const double WHEELBASE = 0.14;   // metres
-const double MAX_SPEED = 0.5;    // m/s = full power
+const double MAX_SPEED = 0.8;    // m/s = full power
 const double REF_V     = 0.1;    // pretend speed for steering while stopped
 
 // ---- Pi GPIO numbers (not physical pins) ----
