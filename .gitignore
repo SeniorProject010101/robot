@@ -1,8 +1,10 @@
-# Ignore Gradle project-specific cache directory
-.gradle
+# ROS 2 and colcon build outputs
+/build/
+/install/
+/log/
 
-# Ignore Gradle build output directory
-build
-
-log
-install
+# Local tooling
+.gradle/
+.vscode/
+__pycache__/
+*.py[cod]

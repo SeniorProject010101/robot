@@ -1,18 +1,18 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.8)
+project(car_core)
 
-project(coreSystem LANGUAGES CXX)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-add_executable(coreSystem
-    main.cpp
-    core/base/systemBase.cpp
-    core/connection/connection.cpp
-    core/logic/logic.cpp
+add_executable(driver src/car_core/driver.cpp)
+ament_target_dependencies(
+  driver
+  "rclcpp"
+  "geometry_msgs"
 )
 
-target_include_directories(coreSystem PRIVATE
-    core/headers
-)
+install(TARGETS driver
+  DESTINATION lib/${PROJECT_NAME})
+
+ament_package()
